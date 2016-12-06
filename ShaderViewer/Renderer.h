@@ -42,6 +42,7 @@ public:
 	void DrawSolidQuad(float x, float y, int width, int height, const Color4f &col, float angle = 0.0f);
 	void DrawSprite(ImageP img, float x, float y, float a = 1.0f, bool centered = false, float angle = 0.0f, float scaleVert = 1.0f, float scaleHoriz = 1.0f);
 
+	void UseShader(GLuint program);
 
 	void Deinit();
     void OnDraw();
@@ -51,6 +52,8 @@ public:
     GLfloat *GetMVPPointer() { return &MVP[0][0]; }
 
 private:
+	void DrawCurrentData();
+
 	void SetTexture(int tIndex);
 	void SetShadeMode(ShadeMode mode);
 	void GetQuadVertices(Vec2f *verts, const ImageP img, float angle, float scaleX, float scaleY);
