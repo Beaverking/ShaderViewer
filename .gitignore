@@ -52,3 +52,4 @@ ShaderViewer/glew-2.0.0/*
 ShaderViewer/glfw-3.2.1.bin.WIN32/*
 ShaderViewer/glm-0.9.4.0/*
 ShaderViewer/lib/*
+*.sdf
