@@ -15,6 +15,8 @@
 #define BACKGROUND_HEIGHT 192u
 #define MS_PER_FRAME 16
 
+#define TOTAL_NUM_PARTICLES  8000 //2073600	//every pixel in fullhd
+
 #define BACKGROUND_FILE_NAME "map.png"
 
 #include <stdio.h>
@@ -127,6 +129,13 @@ struct RImage
 	int pivotX, pivotY;   //image's pivot point
 };
 
+struct Particle
+{
+	GLfloat pX, pY;
+	GLfloat velX, velY;
+	GLfloat r, g, b, a;
+};
+
 template<typename T, typename ...Args>
 std::unique_ptr<T> make_unique(Args&& ...args)
 {
@@ -139,5 +148,7 @@ inline unsigned int GetCurrentMS()
 {
 	return (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())).count();
 }
+
+inline float RandomNormal() { return rand() / (float)RAND_MAX; }
 
 #endif

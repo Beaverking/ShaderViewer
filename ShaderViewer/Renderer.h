@@ -22,6 +22,26 @@ const static Color4f kDebugPolyColorDefault = Color4f(0.4f, 1.0f, 0.4f, 0.7f);
 const static Color4f kDebugPolyColorLevel = Color4f(0.5f, 0.6f, 0.5f, 0.7f);
 const static Color4f kDebugPolyColorActivator = Color4f(0.6f, 0.2f, 0.8f, 0.7f);
 
+struct ProgramDataBase
+{
+	GLuint programId;
+	GLuint matrixSlot;
+};
+
+struct TextureProgramData : public ProgramDataBase
+{
+	GLuint positionSlot;
+	GLuint textureCoordSlot;
+	GLuint colorSlot;
+	GLuint textureSamplerSlot;
+};
+
+struct ParticleProgramData : public ProgramDataBase
+{
+	GLuint blockIndex;
+	GLuint pixelSizeSlot;
+};
+
 class Renderer
 {
 public:
@@ -42,7 +62,7 @@ public:
 	void DrawSolidQuad(float x, float y, int width, int height, const Color4f &col, float angle = 0.0f);
 	void DrawSprite(ImageP img, float x, float y, float a = 1.0f, bool centered = false, float angle = 0.0f, float scaleVert = 1.0f, float scaleHoriz = 1.0f);
 
-	void UseShader(GLuint program);
+	void UseShader(const ProgramDataBase& program);
 
 	void Deinit();
     void OnDraw();
@@ -53,6 +73,8 @@ public:
 
 private:
 	void DrawCurrentData();
+
+	void DrawParticles();
 
 	void SetTexture(int tIndex);
 	void SetShadeMode(ShadeMode mode);
@@ -75,19 +97,19 @@ private:
     glm::mat4 modelM;
     glm::mat4 MVP;
     
-    GLuint      colorProgarm;
-	GLuint      currentProgram;
-    
-    GLuint      positionSlot;
-	GLuint		colorSlot;
-	GLuint		textureCoordSlot;
-	GLuint		textureSamplerSlot;
 
-	GLuint      matrixSlot;
+	TextureProgramData	textureProgram;
+	ParticleProgramData particleProgram;
+	ProgramDataBase     currentProgram;
     
     GLuint      indexBufferId;
     GLuint      vertexBufferId;
 	GLuint		vertexArrayId;
+
+	GLfloat		pixelSize[2];
+
+	GLuint		shaderStorageBufferId;
+	Particle	particleBuffer[TOTAL_NUM_PARTICLES];
 
 	GLFWwindow* window;	//main render window
 };
