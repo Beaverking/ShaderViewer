@@ -96,12 +96,13 @@ int Renderer::Initialize()
 	glBindVertexArray(vertexArrayId);
 
 	glGenBuffers(1, &vertexBufferId);
+	glGenBuffers(1, &indexBufferId);
 
-	//glEnableVertexAttribArray(textureProgram.positionSlot);
-	//glEnableVertexAttribArray(textureProgram.colorSlot);
-	//glEnableVertexAttribArray(textureProgram.textureCoordSlot);
+	textureProgram.programId = ShaderLoader::LoadShaders("Vertex.glsl", "Fragment.glsl", "");
+	UseShader(textureProgram);
 
-	//UseShader(textureProgram);
+	glBufferData(GL_ARRAY_BUFFER, kTotalVerticesNumber * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);  //first buffers fill
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, kTotalIndicesNumber * sizeof(GLushort), NULL, GL_DYNAMIC_DRAW);
 
 	//Init particle data
 	for (int i = 0; i < TOTAL_NUM_PARTICLES; ++i)
@@ -151,12 +152,68 @@ int Renderer::Initialize()
 
 void Renderer::UseShader(const ProgramDataBase& program)
 {
+	if (currentProgram.programId == program.programId)
+		return;
+
+	if (currentVertexIndex > 0)
+		DrawCurrentData();
+	currentProgram = program;
+	glUseProgram(currentProgram.programId);
+	currentProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
+	glUniformMatrix4fv(currentProgram.matrixSlot, 1, GL_FALSE, &MVP[0][0]);
+
+	if (currentProgram.programId == textureProgram.programId)
 	{
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);	//using vertex data from vbo
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferId);
 
+		textureProgram.positionSlot = glGetAttribLocation(textureProgram.programId, "position");    //Binding vertex attribute slots to shader's input variables
+		textureProgram.colorSlot = glGetAttribLocation(textureProgram.programId, "vertexColor");
+		textureProgram.textureCoordSlot = glGetAttribLocation(textureProgram.programId, "textureCoord");
+		textureProgram.textureSamplerSlot = glGetUniformLocation(textureProgram.programId, "texUnit");
 
+		glEnableVertexAttribArray(textureProgram.positionSlot);
+		glEnableVertexAttribArray(textureProgram.colorSlot);
+		glEnableVertexAttribArray(textureProgram.textureCoordSlot);
 
+		glVertexAttribPointer(textureProgram.positionSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glVertexAttribPointer(textureProgram.colorSlot, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 2));
+		glVertexAttribPointer(textureProgram.textureCoordSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 6));
 
+		glUniform1i(textureProgram.textureSamplerSlot, 0);
 	}
+	else if (currentProgram.programId == particleProgram.programId)
+	{
+		//using vertex data from ssbo
+		glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+		glBindBuffer(GL_ARRAY_BUFFER, shaderStorageBufferId);
+
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 2));
+		glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 4));
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);
+
+		pixelSize[0] = 1.0 / static_cast<float>(RENDER_WIDTH);
+		pixelSize[1] = 1.0 / static_cast<float>(RENDER_HEIGHT);
+
+		particleProgram.matrixSlot = glGetUniformLocation(particleProgram.programId, "MVP");
+		particleProgram.pixelSizeSlot = glGetUniformLocation(particleProgram.programId, "pixelSize");
+		glUniform2f(particleProgram.pixelSizeSlot, pixelSize[0], pixelSize[1]);
+		//particleProgram.blockIndex = glGetProgramResourceIndex(particleProgram.programId, GL_SHADER_STORAGE_BLOCK, "particle_data");
+	}
+	GLuint err = glGetError();
+	if (err != GL_NO_ERROR)
+	{
+		printf("GL ERROR: %s\n", gluErrorString(err));
+	}
+}
+
+void Renderer::OnFinishDraw()
+{
+
 }
 
 void Renderer::Deinit()
@@ -166,9 +223,15 @@ void Renderer::Deinit()
 		glDisableVertexAttribArray(textureProgram.positionSlot);
 		glDisableVertexAttribArray(textureProgram.colorSlot);
 		glDisableVertexAttribArray(textureProgram.textureCoordSlot);
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);
 	}
 	//glDisableVertexAttribArray(normalVectorSlot);
 	glDeleteBuffers(1, &vertexBufferId);
+	glDeleteBuffers(1, &indexBufferId);
+	glDeleteBuffers(1, &shaderStorageBufferId);
 	glDeleteProgram(textureProgram.programId);
 	glDeleteProgram(particleProgram.programId);
 	//glDeleteProgram(shadowVolumeProgram);	//deleting shader program
@@ -374,6 +437,8 @@ void Renderer::OnDraw()
 
 	//drawing particles
 	DrawParticles();
+
+	OnFinishDraw();
 
 	// Swap buffers
 	glfwSwapBuffers(window);
