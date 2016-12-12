@@ -73,8 +73,8 @@ public:
 
 private:
 	void DrawCurrentData();
-
 	void DrawParticles();
+	void OnFinishDraw();
 
 	void SetTexture(int tIndex);
 	void SetShadeMode(ShadeMode mode);

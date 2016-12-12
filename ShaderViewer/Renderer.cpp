@@ -95,19 +95,7 @@ int Renderer::Initialize()
 	glGenVertexArrays(1, &vertexArrayId);
 	glBindVertexArray(vertexArrayId);
 
-	//textureProgram.programId = ShaderLoader::LoadShaders("Vertex.glsl", "Fragment.glsl", "");
-	//textureProgram.positionSlot = glGetAttribLocation(textureProgram.programId, "position");    //Binding vertex attribute slots to shader's input variables
-	//textureProgram.colorSlot = glGetAttribLocation(textureProgram.programId, "vertexColor");
-	//textureProgram.textureCoordSlot = glGetAttribLocation(textureProgram.programId, "textureCoord");
-	//textureProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
-	//textureProgram.textureSamplerSlot = glGetUniformLocation(textureProgram.programId, "texUnit");
-
-	////GLuint vertexBuffer;                //creating VBOs for vertex array and index array
 	glGenBuffers(1, &vertexBufferId);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-	////GLuint indexBuffer;
-	//glGenBuffers(1, &indexBufferId);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferId);
 
 	//glEnableVertexAttribArray(textureProgram.positionSlot);
 	//glEnableVertexAttribArray(textureProgram.colorSlot);
@@ -129,13 +117,6 @@ int Renderer::Initialize()
 	particleBuffer[1].pX = RENDER_WIDTH - 40;
 	particleBuffer[1].pY = RENDER_HEIGHT - 40;
 
-	//glBufferData(GL_ARRAY_BUFFER, kTotalVerticesNumber * sizeof(Vertex), NULL, GL_DYNAMIC_DRAW);  //first buffers fill
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, kTotalIndicesNumber * sizeof(GLushort), NULL, GL_DYNAMIC_DRAW);
-
-	//glVertexAttribPointer(textureProgram.positionSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	//glVertexAttribPointer(textureProgram.colorSlot, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 2));
-	//glVertexAttribPointer(textureProgram.textureCoordSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 6));
-
 	//glUniform1i(textureProgram.textureSamplerSlot, 0);
 	//*************
 	//-------------Particle stuff
@@ -145,22 +126,9 @@ int Renderer::Initialize()
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, shaderStorageBufferId);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(Particle)* TOTAL_NUM_PARTICLES, &particleBuffer[0], GL_DYNAMIC_COPY);
 
-	//bind storage buffer as vertex array
-	glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
-	glBindBuffer(GL_ARRAY_BUFFER, shaderStorageBufferId);
-
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 2));
-	glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 4));
-
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); //unbind
 
 	particleProgram.programId = ShaderLoader::LoadShaders("ParticleVert.glsl", "ParticleFrag.glsl", "ParticleGeom.glsl");
-	particleProgram.matrixSlot = glGetUniformLocation(particleProgram.programId, "MVP");
 	//particleProgram.blockIndex = glGetProgramResourceIndex(particleProgram.programId, GL_SHADER_STORAGE_BLOCK, "particle_data");
 	//glShaderStorageBlockBinding(particleProgram.programId, particleProgram.blockIndex, 2);
 
@@ -183,38 +151,11 @@ int Renderer::Initialize()
 
 void Renderer::UseShader(const ProgramDataBase& program)
 {
-	if (currentProgram.programId != program.programId)
 	{
-		if (currentVertexIndex > 0)
-			DrawCurrentData();
-		currentProgram = program;
-		glUseProgram(currentProgram.programId);
-		glUniformMatrix4fv(currentProgram.matrixSlot, 1, GL_FALSE, &MVP[0][0]);
 
-		if (currentProgram.programId == textureProgram.programId)
-		{
-			textureProgram.positionSlot = glGetAttribLocation(textureProgram.programId, "position");    //Binding vertex attribute slots to shader's input variables
-			textureProgram.colorSlot = glGetAttribLocation(textureProgram.programId, "vertexColor");
-			textureProgram.textureCoordSlot = glGetAttribLocation(textureProgram.programId, "textureCoord");
-			textureProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
-			textureProgram.textureSamplerSlot = glGetUniformLocation(textureProgram.programId, "texUnit");
 
-			glVertexAttribPointer(textureProgram.positionSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-			glVertexAttribPointer(textureProgram.colorSlot, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 2));
-			glVertexAttribPointer(textureProgram.textureCoordSlot, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)(sizeof(GL_FLOAT)* 6));
 
-			glUniform1i(textureProgram.textureSamplerSlot, 0);
-		}
-		else if (currentProgram.programId == particleProgram.programId)
-		{
-			pixelSize[0] = 1.0 / static_cast<float>(RENDER_WIDTH) * 20;
-			pixelSize[1] = 1.0 / static_cast<float>(RENDER_HEIGHT) * 20;
 
-			particleProgram.matrixSlot = glGetUniformLocation(particleProgram.programId, "MVP");
-			particleProgram.pixelSizeSlot = glGetUniformLocation(particleProgram.programId, "pixelSize");
-			glUniform2f(particleProgram.pixelSizeSlot, pixelSize[0], pixelSize[1]);
-			//particleProgram.blockIndex = glGetProgramResourceIndex(particleProgram.programId, GL_SHADER_STORAGE_BLOCK, "particle_data");
-		}
 	}
 }
 

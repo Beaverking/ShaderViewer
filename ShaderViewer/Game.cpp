@@ -58,7 +58,7 @@ void Game::Update(float dt)
 
 void Game::Draw()
 {
-	//renderer->DrawSprite(images[0].second, 0.0f, 0.0f);
+	renderer->DrawSprite(images[0].second, 0.0f, 0.0f);
 
 	renderer->OnDraw();
 }
