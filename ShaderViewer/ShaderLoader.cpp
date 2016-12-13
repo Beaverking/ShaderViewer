@@ -161,3 +161,28 @@ GLuint ShaderLoader::LoadShaders(const char * vertex, const char * fragment, con
 
 	return ProgramID;
 }
+
+GLuint ShaderLoader::LoadComputeShader(const char* computeShaderFile)
+{
+	GLuint computeShaderId = glCreateShader(GL_COMPUTE_SHADER);
+
+	CompileShader(computeShaderFile, &computeShaderId);
+	// Link the program
+	printf("Linking program\n");
+	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, computeShaderId);
+	glLinkProgram(ProgramID);
+
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
+	glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+	glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if (InfoLogLength > 0)
+	{
+		std::vector<char> ProgramErrorMessage(InfoLogLength + 1);
+		glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+		printf("%s\n", &ProgramErrorMessage[0]);
+	}
+	glDeleteShader(computeShaderId);
+	return ProgramID;
+}

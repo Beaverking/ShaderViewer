@@ -25,11 +25,11 @@ const static Color4f kDebugPolyColorActivator = Color4f(0.6f, 0.2f, 0.8f, 0.7f);
 struct ProgramDataBase
 {
 	GLuint programId;
-	GLuint matrixSlot;
 };
 
 struct TextureProgramData : public ProgramDataBase
 {
+	GLuint matrixSlot;
 	GLuint positionSlot;
 	GLuint textureCoordSlot;
 	GLuint colorSlot;
@@ -38,8 +38,16 @@ struct TextureProgramData : public ProgramDataBase
 
 struct ParticleProgramData : public ProgramDataBase
 {
-	GLuint blockIndex;
+	GLuint matrixSlot;
 	GLuint pixelSizeSlot;
+};
+
+struct ParticleComputeProgramData : ProgramDataBase
+{
+	GLuint gravitySlot;
+	GLuint dtSlot;
+	GLuint renderSizeSlot;
+	GLuint blockIndex;	//ssbo
 };
 
 class Renderer
@@ -63,6 +71,8 @@ public:
 	void DrawSprite(ImageP img, float x, float y, float a = 1.0f, bool centered = false, float angle = 0.0f, float scaleVert = 1.0f, float scaleHoriz = 1.0f);
 
 	void UseShader(const ProgramDataBase& program);
+
+	void SimulateParticles();
 
 	void Deinit();
     void OnDraw();
@@ -100,6 +110,7 @@ private:
 
 	TextureProgramData	textureProgram;
 	ParticleProgramData particleProgram;
+	ParticleComputeProgramData particleComputeProgram;
 	ProgramDataBase     currentProgram;
     
     GLuint      indexBufferId;

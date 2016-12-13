@@ -15,7 +15,8 @@
 #define BACKGROUND_HEIGHT 192u
 #define MS_PER_FRAME 16
 
-#define TOTAL_NUM_PARTICLES  8000 //2073600	//every pixel in fullhd
+#define TOTAL_NUM_PARTICLES  8100 //2073600	//every pixel in fullhd
+#define SIM_GRAVITY 0.002f
 
 #define BACKGROUND_FILE_NAME "map.png"
 

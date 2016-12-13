@@ -110,9 +110,11 @@ int Renderer::Initialize()
 		particleBuffer[i].r = RandomNormal();
 		particleBuffer[i].g = RandomNormal();
 		particleBuffer[i].b = RandomNormal();
-		particleBuffer[i].a = RandomNormal();
+		particleBuffer[i].a = 1.0f;
 		particleBuffer[i].pX = RENDER_WIDTH * RandomNormal();
 		particleBuffer[i].pY = RENDER_HEIGHT * RandomNormal();
+		particleBuffer[i].velX = RandomNormal() * 2.0f - 1.0f;
+		particleBuffer[i].velY = RandomNormal() * 2.0f - 1.0f;
 	}
 	particleBuffer[0].pX = particleBuffer[0].pY = 40;
 	particleBuffer[1].pX = RENDER_WIDTH - 40;
@@ -130,11 +132,17 @@ int Renderer::Initialize()
 	//glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); //unbind
 
 	particleProgram.programId = ShaderLoader::LoadShaders("ParticleVert.glsl", "ParticleFrag.glsl", "ParticleGeom.glsl");
-	//particleProgram.blockIndex = glGetProgramResourceIndex(particleProgram.programId, GL_SHADER_STORAGE_BLOCK, "particle_data");
-	//glShaderStorageBlockBinding(particleProgram.programId, particleProgram.blockIndex, 2);
-
 	UseShader(particleProgram);
 
+	//Compute shader
+	int work_grp_cnt[3];
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &work_grp_cnt[0]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &work_grp_cnt[1]);
+	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &work_grp_cnt[2]);
+	printf("Compute program: max global work group size x:%i y:%i z:%i\n", work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
+
+	particleComputeProgram.programId = ShaderLoader::LoadComputeShader("particleCompute.glsl");
+	UseShader(particleComputeProgram);
 
 	//enabling texturing
 	//glEnable(GL_TEXTURE_2D);
@@ -159,11 +167,11 @@ void Renderer::UseShader(const ProgramDataBase& program)
 		DrawCurrentData();
 	currentProgram = program;
 	glUseProgram(currentProgram.programId);
-	currentProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
-	glUniformMatrix4fv(currentProgram.matrixSlot, 1, GL_FALSE, &MVP[0][0]);
-
 	if (currentProgram.programId == textureProgram.programId)
 	{
+		textureProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
+		glUniformMatrix4fv(textureProgram.matrixSlot, 1, GL_FALSE, &MVP[0][0]);
+
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);	//using vertex data from vbo
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBufferId);
 
@@ -184,8 +192,10 @@ void Renderer::UseShader(const ProgramDataBase& program)
 	}
 	else if (currentProgram.programId == particleProgram.programId)
 	{
+		particleProgram.matrixSlot = glGetUniformLocation(textureProgram.programId, "MVP");
+		glUniformMatrix4fv(particleProgram.matrixSlot, 1, GL_FALSE, &MVP[0][0]);
+
 		//using vertex data from ssbo
-		glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 		glBindBuffer(GL_ARRAY_BUFFER, shaderStorageBufferId);
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
@@ -196,19 +206,44 @@ void Renderer::UseShader(const ProgramDataBase& program)
 		glEnableVertexAttribArray(1);
 		glEnableVertexAttribArray(2);
 
-		pixelSize[0] = 1.0 / static_cast<float>(RENDER_WIDTH);
-		pixelSize[1] = 1.0 / static_cast<float>(RENDER_HEIGHT);
+		pixelSize[0] = 1.0 / static_cast<float>(RENDER_WIDTH)*4;
+		pixelSize[1] = 1.0 / static_cast<float>(RENDER_HEIGHT)*4;
 
-		particleProgram.matrixSlot = glGetUniformLocation(particleProgram.programId, "MVP");
 		particleProgram.pixelSizeSlot = glGetUniformLocation(particleProgram.programId, "pixelSize");
 		glUniform2f(particleProgram.pixelSizeSlot, pixelSize[0], pixelSize[1]);
 		//particleProgram.blockIndex = glGetProgramResourceIndex(particleProgram.programId, GL_SHADER_STORAGE_BLOCK, "particle_data");
 	}
+	else if (currentProgram.programId == particleComputeProgram.programId)
+	{
+		//using data from ssbo itself
+		//glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT); MEMORY BARRIER!??????
+		//glBindBuffer(GL_SHADER_STORAGE_BUFFER, shaderStorageBufferId);
+
+		//particleComputeProgram.blockIndex = glGetProgramResourceIndex(particleComputeProgram.programId, GL_SHADER_STORAGE_BLOCK, "particleBuffer");
+		//glShaderStorageBlockBinding(particleProgram.programId, particleComputeProgram.blockIndex, 11);	//11 - hardcoded in glsl
+
+		particleComputeProgram.gravitySlot = glGetUniformLocation(particleComputeProgram.programId, "gravity");
+		particleComputeProgram.dtSlot = glGetUniformLocation(particleComputeProgram.programId, "dt");
+		particleComputeProgram.renderSizeSlot = glGetUniformLocation(particleComputeProgram.programId, "renderSize");
+
+		glUniform1f(particleComputeProgram.gravitySlot, SIM_GRAVITY);
+		glUniform1f(particleComputeProgram.dtSlot, static_cast<GLfloat>(MS_PER_FRAME));
+		glUniform2f(particleComputeProgram.renderSizeSlot, static_cast<GLfloat>(RENDER_WIDTH), static_cast<GLfloat>(RENDER_HEIGHT));
+	}
+
 	GLuint err = glGetError();
 	if (err != GL_NO_ERROR)
 	{
 		printf("GL ERROR: %s\n", gluErrorString(err));
 	}
+}
+
+void Renderer::SimulateParticles()
+{
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, shaderStorageBufferId);
+	UseShader(particleComputeProgram);
+	glDispatchCompute(90, 1, 1);	//HARDCODED!!!								!!!!				!!!!!
+	glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
 }
 
 void Renderer::OnFinishDraw()

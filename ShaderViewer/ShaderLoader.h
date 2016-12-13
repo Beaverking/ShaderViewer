@@ -17,6 +17,7 @@ public:
     //static GLuint CompileShader(const char* shaderName, GLenum shaderType);
     static GLuint CreateProgram(GLuint vertexHandle, GLuint fragmentHandle);
 	static GLuint LoadShaders(const char * vertex, const char * fragment, const char * geometry);
+	static GLuint LoadComputeShader(const char* computeShaderFile);
 
 	static void CompileShader(const char *fileName, GLuint *shaderId);
 

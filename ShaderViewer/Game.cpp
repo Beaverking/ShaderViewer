@@ -52,13 +52,12 @@ void Game::Deinit()
 
 void Game::Update(float dt)
 {
-	pos.x += 0.2 * dt;
-	pos.y += 0.002 * dt;
+	renderer->SimulateParticles();
 }
 
 void Game::Draw()
 {
-	renderer->DrawSprite(images[0].second, 0.0f, 0.0f);
+	//renderer->DrawSprite(images[0].second, 0.0f, 0.0f);
 
 	renderer->OnDraw();
 }
