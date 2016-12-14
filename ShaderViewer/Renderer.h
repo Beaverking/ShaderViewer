@@ -71,6 +71,7 @@ public:
 	void DrawSprite(ImageP img, float x, float y, float a = 1.0f, bool centered = false, float angle = 0.0f, float scaleVert = 1.0f, float scaleHoriz = 1.0f);
 
 	void UseShader(const ProgramDataBase& program);
+	void SetTexture(int tIndex);
 
 	void SimulateParticles();
 
@@ -86,7 +87,6 @@ private:
 	void DrawParticles();
 	void OnFinishDraw();
 
-	void SetTexture(int tIndex);
 	void SetShadeMode(ShadeMode mode);
 	void GetQuadVertices(Vec2f *verts, const ImageP img, float angle, float scaleX, float scaleY);
 	void SetVertexQuadData(Vec2f *positions, Vec2f *uvs, const Color4f &color);

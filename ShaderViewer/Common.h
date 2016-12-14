@@ -17,6 +17,7 @@
 
 #define TOTAL_NUM_PARTICLES  8100 //2073600	//every pixel in fullhd
 #define SIM_GRAVITY 0.002f
+#define EXPLOSION_RAD 40
 
 #define BACKGROUND_FILE_NAME "map.png"
 

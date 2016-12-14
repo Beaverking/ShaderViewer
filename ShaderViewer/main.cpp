@@ -3,9 +3,12 @@
 #include "Game.h"
 #include <windows.h>
 
+Game* game = nullptr;
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+
 int main(int argc, char* argv[])
 {
-	Game *game = new Game();
+	game = new Game();
 	// Initialize renderer
 	int res = game->Init();
 	if (res != 0)
@@ -14,6 +17,9 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
+		GLFWwindow* window = game->GetRenderer()->GetRenderWindow();
+		glfwSetMouseButtonCallback(window, mouse_button_callback);
+
 		//start main loop
 		unsigned long long oldTime = GetCurrentMS();
 		unsigned int acc = 0;
@@ -29,7 +35,7 @@ int main(int argc, char* argv[])
 				game->Update(MS_PER_FRAME);
 				glfwPollEvents();
 				acc -= MS_PER_FRAME;
-				exit = glfwGetKey(game->GetRenderer()->GetRenderWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(game->GetRenderer()->GetRenderWindow());
+				exit = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS || glfwWindowShouldClose(game->GetRenderer()->GetRenderWindow());
 				game->Draw();
 			}
 			Sleep(1);
@@ -39,6 +45,17 @@ int main(int argc, char* argv[])
 	}
 
 	delete game;
+	game = nullptr;
 	return 0;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		double xpos, ypos;
+		glfwGetCursorPos(window, &xpos, &ypos);
+		game->OnLbMouseClick(static_cast<float>(xpos), static_cast<float>(ypos));
+	}
 }
 

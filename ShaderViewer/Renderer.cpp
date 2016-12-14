@@ -471,13 +471,12 @@ void Renderer::OnDraw()
 	DrawCurrentData();	//drawing vertices
 
 	//drawing particles
-	DrawParticles();
+	//DrawParticles();
 
 	OnFinishDraw();
 
 	// Swap buffers
 	glfwSwapBuffers(window);
-
 
 	GLenum err = glGetError();
 	if (err != GL_NO_ERROR)
